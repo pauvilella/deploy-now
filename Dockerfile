@@ -1,8 +1,7 @@
 ARG PYTHON_VERSION=3.10
 FROM python:${PYTHON_VERSION}-buster as build-image
 
-RUN --mount=type=cache,mode=0777,target=/var/cache/apt \
-    apt-get update; apt-get dist-upgrade -y \
+RUN apt-get update; apt-get dist-upgrade -y \
     && rm -rf /var/lib/apt/lists/*
 
 # poetry
