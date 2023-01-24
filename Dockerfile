@@ -10,8 +10,7 @@ WORKDIR /srv
 RUN pip install poetry==1.3.2
 COPY poetry.lock pyproject.toml /srv/
 ARG POETRY_DEV=false
-RUN --mount=type=cache,mode=0777,target=/root/.cache/pip \
-    poetry export -f requirements.txt -o requirements.txt --without-hashes $(test "$POETRY_DEV" = "true" && echo "--with dev") \
+RUN poetry export -f requirements.txt -o requirements.txt --without-hashes $(test "$POETRY_DEV" = "true" && echo "--with dev") \
     && python -m venv venv && . venv/bin/activate && pip install -r requirements.txt
 # end poetry
 
