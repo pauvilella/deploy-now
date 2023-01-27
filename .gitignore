@@ -1,2 +1,5 @@
 # Poetry Virtual Environment
 .venv
+
+# History extension
+.history
