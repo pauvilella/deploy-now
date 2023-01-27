@@ -7,7 +7,10 @@ from django.contrib import admin
 
 class AWSECSCluster(models.Model):
 
-    cluster_name = models.CharField(max_length=30)
+    name = models.CharField(max_length=30)
+
+    def __str__(self):
+        return self.name
 
     # Used to change class name
     class Meta:
