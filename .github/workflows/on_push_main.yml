@@ -1,0 +1,105 @@
+name: On Push main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  new_release_build_and_push:
+    name: 🎉 Create release & Build & Push
+    runs-on: ubuntu-22.04
+    outputs:
+      tagged_image: ${{ steps.prep.outputs.tagged_image }}
+      tag: ${{ steps.release_tag.outputs.tag }}
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v3
+
+      - name: 🏗 Create an incremental release tag
+        uses: aurestic/incrementarl-create-release@master
+        with:
+          prev_tag: 'v'
+          message: Automatic version bump
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏗 Get release tag
+        id: release_tag
+        run: |
+          TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: 🎉 Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-3
+          mask-aws-account-id: "no"
+
+      - name: 🔐 Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: 🏗 Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: 🏗 Prepare Image tags
+        id: prep
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          TAG=${{ steps.release_tag.outputs.tag }}
+          echo "tagged_image=${ECR_REGISTRY}/backend:${TAG}" >> $GITHUB_OUTPUT
+          echo "tagged_image_latest=${ECR_REGISTRY}/backend:latest" >> $GITHUB_OUTPUT
+
+      - name: 🏗 Build and push image 🚀
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          ssh: |
+            default=${{ env.SSH_AUTH_SOCK }}
+          push: true
+          tags: |
+            ${{ steps.prep.outputs.tagged_image }}
+            ${{ steps.prep.outputs.tagged_image_latest }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy_documents_service:
+    name: 🎉 Deploy documents backend
+    needs: [new_release_build_and_push]
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v3
+
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-3
+
+      - name: 🎉 ECS deployment
+        uses: donaldpiret/ecs-deploy@v0.3.0
+        with:
+          cluster: vpc1
+          target: 	backend
+          image: 	backend ${{ needs.new_release_build_and_push.outputs.tagged_image }}
+          env_vars: backend VERSION ${{ needs.new_release_build_and_push.outputs.tag }}, backend DD_VERSION ${{ needs.new_release_build_and_push.outputs.tag }}
+          no_deregister: true
+          rollback: true
+          timeout: 500
