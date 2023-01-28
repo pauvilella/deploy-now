@@ -19,15 +19,20 @@ black .
 
 Test command (out-of-the-box Django Test Framework):
 ```bash
-docker-compose run --rm deploy-now bash -c "python manage.py test"
+docker-compose exec deploy-now python manage.py test
 ```
 
 Lint command:
 ```bash
-docker-compose run --rm deploy-now bash -c "flake8"
+docker-compose exec deploy-now flake8
 ```
 
 Create super user:
 ```bash
-docker-compose run --rm deploy-now bash -c "python manage.py createsuperuser"
+docker-compose exec deploy-now python manage.py createsuperuser
+````
+
+Create super user:
+```bash
+docker-compose exec deploy-now python manage.py makemigrations
 ````
