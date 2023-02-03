@@ -1,8 +1,8 @@
 version: '3.9'
 
 services:
-  deploy-now:
-    container_name: deploy-now
+  back:
+    container_name: back
     build:
       context: .
       args:

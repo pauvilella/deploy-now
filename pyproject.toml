@@ -12,9 +12,9 @@ exclude = '''
 '''
 
 [tool.poetry]
-name = "deploy-now"
+name = "app-deploy"
 version = "0.1.0"
-description = "deploy.now - backend"
+description = "app-deploy -- backend"
 authors = ["Joan Plaja <joanplaja10@gmail.com>", "Pau Vilella <pau.vilella.st@gmail.com>"]
 readme = "README.md"
 
